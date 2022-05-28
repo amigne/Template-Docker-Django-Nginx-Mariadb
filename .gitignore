@@ -1,0 +1,4 @@
+# .env is local with secret information
+.env
+
+.idea/

@@ -1,0 +1,61 @@
+version: "3.9"
+services:
+  db:
+    image: mariadb:10.8.3
+    restart: always
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 3s
+      retries: 5
+      start_period: 30s
+    command: "--default-authentication-plugin=mysql_native_password"
+    expose:
+      - 3306
+      - 33060
+    networks:
+      - backnet
+    volumes:
+      - db-data:/var/lib/mysql
+    env_file:
+      - .env
+
+  webapp:
+    build: webapp
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    networks:
+      - backnet
+    env_file:
+      - .env
+    volumes:
+      - django-static:/static
+
+  proxy:
+    build: proxy
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - webapp
+    networks:
+      - frontnet
+      - backnet
+    volumes:
+      - django-static:/static
+
+networks:
+  frontnet:
+  backnet:
+
+volumes:
+  db-data:
+    external: true
+  django-static:
+
+secrets:
+  db-password:
+    file: db/password.txt
